@@ -1,0 +1,41 @@
+---
+title: "computer3"
+output: html_document
+date: "2023-11-09"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+data = read.table("sales.txt", header = TRUE, sep = "\t")
+```
+
+```{r}
+# Apply differencing
+sales_ts <- ts(data$Sales, start = 1970, frequency=12)
+```
+
+```{r}
+plot(sales_ts)
+```
+
+```{r}
+sales_diff = diff(sales_ts)
+plot(sales_diff)
+```
+
+```{r}
+plot(log(sales_ts), main = "Log(Sales)")
+```
+
+```{r}
+seasonal_diff =  diff(sales_ts, lag=12)
+plot(seasonal_diff)
+```
+
+```{r}
+seasonal_diff =  diff(log(sales_ts), lag=12)
+plot(seasonal_diff)
+```

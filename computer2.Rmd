@@ -1,0 +1,143 @@
+---
+title: "computer2"
+output: pdf_document
+date: "2023-11-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r cars}
+
+# install.packages('car')
+library(car)
+?vif
+hald <- read.table("hald.txt", header = TRUE, sep = "\t")
+str(hald)
+
+# a) Estimation of the full model
+
+fullmodel <- lm(HEAT ~ CHEM1 + CHEM2 + CHEM3 + CHEM4, data = hald)
+summary(fullmodel)
+
+# Model is statistically significant according to F-test.
+# With 5% level of significance none of the variables are statistically
+# significant.
+# Remember normality assumptions for t-test and F-test!
+
+# Residuals do not seem to be normally distributed.
+res <- fullmodel$residuals
+b <- seq(-4, 4, length.out = 9)
+hist(res, breaks = b, border = FALSE, col = "red")
+
+# Example: Calculate VIF of CHEM1
+model1 <- lm(CHEM1 ~ CHEM2 + CHEM3 + CHEM4, data = hald)
+r1 <- summary(model1)$r.squared
+vif1 <- 1 / (1 - r1)
+vif1
+
+# Use function vif from package car
+vif(fullmodel)
+# VIF_i > 10 for all i = 1,..,4
+# => Strong multicollinearity is present in the model.
+
+```
+
+```{r}
+# b) 
+?step
+
+# Use AIC for variable selection
+step(fullmodel)
+model <- lm(HEAT ~ CHEM1 + CHEM2 + CHEM4, data = hald)
+summary(model)
+```
+
+```{r}
+model_chem0 <- lm(HEAT ~ CHEM1 + CHEM2 + CHEM3 + CHEM4, data = hald)
+summary(model_chem0)
+step(model_chem0)
+```
+
+```{r}
+model_chem1 <- lm(HEAT ~ CHEM1 + CHEM2 + CHEM4, data = hald)
+step(model_chem1)
+summary(model_chem1)
+```
+
+```{r}
+# Fit the initial model
+model_chem0 <- lm(HEAT ~ CHEM1 + CHEM2 + CHEM3 + CHEM4, data = hald)
+summary(model_chem0)
+```
+
+```{r}
+model_chem3 <- lm(HEAT ~ CHEM1 + CHEM2+ CHEM4, data = hald)
+summary(model_chem3)
+```
+
+```{r}
+model_chem4 <- lm(HEAT ~ CHEM1 + CHEM2, data = hald)
+summary(model_chem4)
+```
+
+```{r - Exercise 2.4}
+
+```
+
+```{r}
+hald_data = read.table("crop.txt", header = TRUE, sep = "\t")
+str(hald_data)
+
+```
+
+```{r}
+hald_lm = lm(hald_data$Yield ~ hald_data$Fertilizer, data=hald_data)
+plot(hald_lm)
+```
+
+```{r}
+plot(Yield ~ Fertilizer, data=hald_data)
+abline(hald_lm)
+```
+
+```{r}
+split1 = hald_data[hald_data$Fertilizer > 6, ]
+split2 = hald_data[hald_data$Fertilizer <= 6, ]
+```
+
+```{r}
+split1_lm = lm(Yield ~ Fertilizer, data=split1)
+split2_lm = lm(Yield ~ Fertilizer, data=split2)
+```
+
+```{r}
+plot(Yield ~ Fertilizer, data=hald_data)
+abline(split1_lm)
+abline(split2_lm)
+```
+
+```{r}
+squared_lm = lm(Yield ~ Fertilizer + LSqrd, data=hald_data)
+plot(squared_lm)
+summary(squared_lm)
+```
+```{r}
+plot(squared_lm)
+curve(squared_lm, 0, 5)
+```
+
+```{r}
+summary(hald_lm)
+print("squared residuals squared: ")
+sum((squared_lm$residuals)^2)/nrow(hald_data)
+
+print("linear residuals squared: ")
+sum((hald_lm$residuals)^2)/nrow(hald_data)
+
+print("difference")
+difference = sum((hald_lm$residuals)^2)/nrow(hald_data) - sum((squared_lm$residuals)^2)/nrow(hald_data)
+print(difference)
+
+```

@@ -1,0 +1,124 @@
+---
+title: "Computer1"
+output:
+  pdf_document: default
+  html_document: default
+date: "2023-10-28"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Importing the data
+
+```{r}
+data <- read.table("tobacco.txt", header = TRUE, sep = "\t", row.names = 1)
+```
+
+a)  ILL = constant + B\*consumption + error
+
+b)  
+
+```{r}
+fit = lm(ILL ~ CONSUMPTION, data = data)
+coefficients(fit)
+```
+
+The regression coefficient for consumption is B = 0.2291153, which would mean that the weight of consumption is not too high with being ill
+
+c)  
+
+```{r}
+r_squared <- summary(fit)$r.squared
+r_squared
+```
+
+d)  
+
+```{r}
+f = summary(fit)$fstatistic
+
+p = pf(f[1],f[2], f[3], lower.tail = FALSE)
+p
+```
+
+It is statistically significant because p \< 0.01
+
+e)  
+
+```{r}
+p_values <- summary(fit)$coefficients[, "Pr(>|t|)"]
+
+p_values[2]
+
+
+```
+
+It is statistically significant with 1% boundary, the value is equal to the value obtained in part d)
+
+f)  
+
+```{r}
+library(ggplot2)
+
+ggplot(data, aes(x = CONSUMPTION, y = ILL)) +
+  geom_point() +  # Display data points
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "fit", x = "CONSUMPTION", y = "ILL")
+
+```
+
+g)  A confidence interval means a range of values that is used to estimate an unknown value. For example, a 95% confidence interval means that taking 100 samples, then around 95 of the samples would fall into that range (confidence interval).
+
+h)  
+
+```{r}
+conf_interval_95 <- confint(fit, "CONSUMPTION", level = 0.95) 
+conf_interval_95
+conf_interval_99 <- confint(fit, "CONSUMPTION", level = 0.99)
+conf_interval_99
+confint(fit, "(Intercept)", level = 0.95)
+```
+
+The range of values for ILL has a big range, the data is dispersed, which means there are many suitable intercepts.
+
+i)  
+
+```{r}
+# Make matrix X of above formula.
+n = nrow(data)
+tmp <- as.matrix(data[, c(4)]) 
+xmatrix <- cbind(rep(1, n), tmp) 
+
+k <- 2000
+alpha <- 0.05
+# Number of variables and number of observations.
+m <- ncol(xmatrix) 
+n <- nrow(xmatrix)
+# Create matrix for collecting values of b.
+bmatrix <- matrix(NA, nrow = k, ncol = m) 
+y <- data$ILL
+
+for (i in 1:(k - 1)) {
+  # take random sample of size n (n size of the original sample). 
+  ind <- sample(1:n, n, replace = TRUE)
+  xtmp <- xmatrix[ind, ]
+  ytmp <- y[ind]
+  # Calculate bootstrap estimates
+  btmp <- solve(t(xtmp) %*% xtmp) %*% t(xtmp) %*% ytmp
+  bmatrix[i, ] <- t(btmp) 
+}
+
+# Include original estimate
+b <- solve(t(xmatrix) %*% xmatrix) %*% t(xmatrix) %*% y 
+bmatrix[k, ] <- t(b)
+
+# Calculate confidence interval
+qconst <- quantile(bmatrix[, 1], probs = c(0.025, 0.975)) 
+qhum <- quantile(bmatrix[, 2], probs = c(0.025, 0.975)) 
+qhum
+qconst
+```
+
+j)  It is simple and easy to implement even on a small data set, nor do you have to make any assumptions about the data, like the normality assumption.
