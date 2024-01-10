@@ -1,0 +1,129 @@
+---
+title: "computer4"
+output: html_document
+date: "2023-11-16"
+---
+
+```{r}
+library(forecast)
+
+data = read.table("mlco2.txt", header = TRUE, sep = "\t")
+```
+
+```{r}
+plot_acf <- function(data_ts, lagmax = NULL) {
+  par(mfrow = c(1, 2))
+  acf(data_ts, main = "ACF", lag.max = lagmax)
+  pacf(data_ts, main = "PACF", lag.max = lagmax)
+  par(mfrow = c(1, 1))
+}
+
+#' Perform Ljung-Box test
+#'
+#' Calculates p-values for Ljung-Box test for lags {k+1, ..., n}, where k
+#' is the number of model parameters.
+#'
+#' @param model Object of class Arima, represents the fitted model.
+#' @param k Number of model parameters.
+#' @param n Sample size (length of the time series).
+#'
+#' @return Vector of p-values.
+box_test <- function(model, k, n) {
+  pvalues <- c(rep(NA, n - k - 1))
+  for (i in 1:(n - k - 1)) {
+    pvalues[i] <- Box.test(model$res, lag = i + k, fitdf = k,
+                           type = "Ljung-Box")$p.value
+  }
+  pvalues
+}
+
+#' Plot p-values from Ljung-box test for different lags
+#'
+#' @param pvalues Vector of p-values.
+#' @param alpha Significance level.
+#' @param k Number of model parameters.
+#' @param n Sample size (length of the time series).
+plot_pvalues <- function(pvalues, alpha, k, n) {
+  plot((k + 1):(n - 1), pvalues, pch = 16, col = "midnightblue",
+       ylim = c(0, max(pvalues)), xlab = "lag", ylab = "p-value")
+  abline(h = alpha, lty = 2, lwd = 2)
+}
+
+#' Plot original time series and fitted model.
+#'
+#' @param data_ts Time series as ts object.
+#' @param model Fitted time series model as Arima object.
+#'
+plot_fit <- function(data_ts, model) {
+  fit <- model$fitted
+  plot(fit, type = "b", col = "blue", ylab = "Value", xlab = "Time", cex = 0.5,
+       pch = 16, main = "")
+  lines(data_ts, col = "red", type = "b", cex = 0.5, pch = 16)
+  legend("topleft", legend = c("Time series", "Fit"), col = c("red", "blue"),
+         lty = c(1, 1), cex = 0.5)
+}
+
+#' Plot original time series and s-step prediction.
+#'
+#' @param data_ts Time series as ts object.
+#' @param prediction S-step prediction as ts object.
+plot_pred <- function(data_ts, prediction, title = "", xlim = NULL,
+                      ylim = NULL) {
+  plot(data_ts, col = "red", type = "b", cex = 0.5, pch = 16, ylab = "Value",
+       xlab = "Time", main = title, xlim = xlim, ylim = ylim)
+  lines(prediction, col = "blue", type = "b", cex = 0.5, pch = 16)
+  legend("topleft", legend = c("Time series", "Prediction"),
+         col = c("red", "blue"), lty = c(1, 1), cex = 0.5)
+}
+
+```
+
+```{r}
+data_ts = ts(data$MLCO2, frequency=12)
+
+
+plot(data_ts)
+
+```
+
+```{r}
+plot_acf(data_ts)
+```
+
+```{r}
+#model_sarima = Arima(data_ts_diff, order = c(4, 3, 2), seasonal = c(2, 2, 2))
+model_sarima = Arima(data_ts, order = c(2, 1, 1), seasonal = c(0, 1, 2))
+n <- length(data_ts1)
+k <- 3
+pvalues <- box_test(model_sarima, k, n) 
+print(sum(pvalues))
+plot_acf(model_sarima$residuals)
+```
+
+```{r}
+plot_fit(data_ts, model_sarima)
+```
+
+```{r}
+n <- length(data_ts_diff)
+k <- 3
+pvalues <- box_test(model_sarima, k, n) 
+print(sum(pvalues))
+plot_pvalues(pvalues, 0.05, k, n)
+```
+
+```{r}
+data_ts_pred <- ts(data_ts[1:192], frequency = 12) 
+model_pred <- Arima(data_ts_pred, order = c(2, 1, 1), seasonal = c(0, 1, 2))
+prediction <- forecast(model_pred, h = 24)$mean 
+plot_pred(data_ts, prediction)
+
+```
+
+```{r}
+data_ts_pred <- ts(data_ts[1:214], frequency = 12) 
+model_pred <- Arima(data_ts_pred, order = c(2, 1, 1), seasonal = c(0, 1, 2))
+prediction <- forecast(model_pred, h = 2)$mean 
+plot_pred(data_ts, prediction)
+
+```
