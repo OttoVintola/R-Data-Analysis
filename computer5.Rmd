@@ -1,0 +1,147 @@
+```{r}
+library(car) # Calculate VIF 
+library(lmtest) # Breusch–Godfrey test
+```
+
+```{r}
+data = read.table("t38.txt", header = TRUE, sep = "")
+```
+
+```{r}
+
+# Define some functions for diagnostics
+
+#' Plot original time series and fit
+#'
+#' @param y Response variable.
+#' @param model Linear regression model object of class lm.
+#' @param name Name of the response variable.
+plot_fit <- function(y, model, name) {
+  fit <- ts(model$fitted.values, start = start(y)[1])
+  plot(y, col = "red", xlab = "Time", ylab = "")
+  lines(fit, col = "blue")
+  legend("topleft", legend = c(name, "Fit"), col = c("red", "blue"),
+         lty = c(1, 1))
+}
+
+#' Plot Cook's distances
+#'
+#' @param y Response variable.
+#' @param model Linear regression model object of class lm.
+plot_cook <- function(y, model) {
+  cooksd <- cooks.distance(model)
+  plot(cooksd, xaxt = "n", type = "h", lwd = 3, xlab = NA,
+       ylab = "Cook's distances")
+  axis(side = 1, at = seq(1, length(y), 5), cex.axis = 0.9,
+       labels = seq(start(y)[1], (start(y)[1] + length(y) - 1), 5))
+}
+
+#' Plot residuals versus time
+#'
+#' @param y Response variable.
+#' @param model Linear regression model object of class lm.
+plot_res <- function(y, model) {
+  res <- ts(model$residuals, start = start(y)[1])
+  plot(res, type = "p", pch = 16)
+}
+
+#' ACF plot of residuals
+#'
+#' @param model Linear regression model object of class lm.
+#' @param lag_max Maximum lag at which to calculate the acf.
+plot_acf <- function(model, lag_max = NULL){
+  acf(model$residuals, main = "", lag.max = lag_max)
+}
+
+#' Histogram of residuals (8 bins)
+#'
+#' @param model Linear regression model object of class lm.
+plot_hist <- function(model) {
+  res <- model$residuals
+  breaks <- seq(min(res), max(res), length.out = 9)
+  hist(model$residuals, xlab = "Residuals", ylab = "Frequency", main = "",
+       breaks = breaks)
+}
+
+#' QQ plot
+#'
+#' @param model Linear regression model object of class lm.
+plot_qq <- function(model) {
+  res <- model$residuals
+  qqnorm(res, pch = 16, main = "")
+  qqline(res, col = "red", lwd = 2)
+}
+
+#' Perform Breusch-Godfrey test
+#'
+#' Breusch-Godfrey can be performed up to order
+#' 'sample size' - 'number of estimated parameters'.
+#'
+#' @param model Linear regression model object of class lm.
+#' @param m Number of estimated parameters.
+#'
+#' @return Vector of p-values.
+res_test <- function(model, m) {
+  n <- length(model$residuals)
+  pvalues <- rep(NA, n - m)
+  for (i in 1:(n - m)) {
+    pvalues[i] <- bgtest(model, order = i)$p.value
+  }
+  pvalues
+}
+
+```
+
+```{r}
+print(data)
+#library(tidyr)
+
+# Assuming your dataset is named your_data
+# Assuming the column name containing the values is column_to_split
+
+# Splitting the single column into three separate columns
+#data <- separate(data, CONS.INC.INFLAT, into = c("Index", "Cons", "Inc", "Inflat"), sep = " ")
+
+# Printing the modified dataset
+#print(data)
+```
+
+```{r}
+Cons <- ts(data$CONS)
+Inc <- ts(data$INC)
+Inflat <- ts(data$INFLAT)
+```
+
+```{r}
+model1 = lm(Cons ~ Inc + Inflat)
+summary(model1)
+plot_fit(Cons, model1, name = "Consumption") 
+plot_cook(Cons, model1) 
+plot_res(Cons, model1)
+plot_acf(model1)
+plot_hist(model1) 
+plot_qq(model1)
+```
+
+```{r}
+model2 = lm(diff(Cons) ~ diff(Inc) + diff(Inflat))
+summary(model2)
+plot_fit(diff(Cons), model2, name = "Consumption") 
+plot_cook(diff(Cons), model2) 
+plot_res(diff(Cons), model2)
+plot_acf(model2)
+plot_hist(model2) 
+plot_qq(model2)
+```
+
+```{r}
+n = length(Cons)
+model3 = lm(Cons[-1] ~ Cons[-n] + Inc[-1] + Inc[-n] + Inflat[-1] + Inflat[-n])
+summary(model3)
+plot_fit(Cons, model3, name = "Consumption") 
+plot_cook(Cons, model3) 
+plot_res(Cons, model3)
+plot_acf(model3)
+plot_hist(model3) 
+plot_qq(model3)
+```
